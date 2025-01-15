@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import styled from 'styled-components'
+import axios from 'axios'
 
 const StyledBook = styled.li`
   text-decoration: ${props => props.$finished ? 'line-through' : 'initial'}
@@ -16,16 +17,52 @@ export default function Books() {
   }, [])
 
   const fetchBooks = () => {
-
+    fetch('/api/books')
+    .then(res => {
+      if(!res.ok) {
+        throw new Error('Network response was not OK')
+      }
+      const contentType = res.headers.get('Content-Type')
+      if(contentType.includes('application/json')) {
+        // parse the response body as JSON
+        // return a new promise
+        return res.json()
+      }
+    })
+    .then(data => {
+      setBooks(data)
+    })
+    .catch( err => console.error('Failed to GET books', err))
   }
 
   const deleteBook = id => {
-
+    console.log(`Deleting book with ID ${id}`)
+    fetch(`/api/books/${id}`, {method: 'DELETE'})
+    .then(() => fetchBooks())
+    .catch(err => console.error('Failed to delete book', err))
   }
 
   const onSubmit = (event) => {
     event.preventDefault()
+    const url = bookForm.id
+    ? `/api/books/${bookForm.id}`
+    : `/api/books`
 
+    fetch(url, {
+      method: bookForm.id ? 'PUT' : 'POST',
+      body: JSON.stringify(bookForm),
+      headers: new Headers ( {
+        'Content-Type' : 'application/json',
+        'X-Bloom': 'full-stack-web'
+      })
+    })
+    .then( () => {
+      // call the fetchBooks endpoints
+      fetchBooks()
+      // clear out the form
+      setBookForm(initialForm)
+    })
+    .catch ( err => console.error(`Failed to save book`, err)) 
   }
 
   const onChange = (event) => {
